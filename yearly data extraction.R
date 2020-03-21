@@ -7,7 +7,26 @@ setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 
 TIME <- Sys.time()
 
-myData <- read.csv('data\\doodle\\im2018.csv',header=T, stringsAsFactors = FALSE, sep=',')
+myData <- read.csv('data\\doodle\\im2014_utf8.csv',header=T, stringsAsFactors = FALSE, sep=',')
+
+summ <- summary(myData)
+
+####### 1. comparison of datasets - column names ########### 
+#columns2019 <- colnames(myData)
+#columns2018 <- colnames(myData)
+#columns2017 <- colnames(myData)
+#columns2016 <- colnames(myData)
+#columns2015 <- colnames(myData)
+#columns2014 <- colnames(myData)
+#columns2013 <- colnames(myData)
+#setdiff(columns2018,columns2013)
+#setdiff(columns2013,columns2018)
+
+########## The only mismatcch - additional column "B_P1M_GAUT_SUMOS" in 2013 year data
+
+summary(myData)
+
+head(myData)
 
 myDataRaw <- myData
 myData <- myDataRaw
@@ -20,34 +39,49 @@ str(myData)
 # pardavimai_pvm_dekl        : chr  " " " " " " " " ...
 # pvm_dekl_36                : chr  " " " " " " " " ...
 # pirkimai_pvm_dekl          : chr  " " " " " " " " ...
-# laik_tipas_pvm             : chr  "" "" "" "" ...
-
-
-######################## FIX VARIABLES #######################
-# Delete ones with all NA values
+######################## 2. FIX VARIABLES #######################
 # Numbers: 1,000.00 are read as chars (change to 1000.00?)
-smallData$pardavimai_pvm_dekl <- as.numeric(smallData$pardavimai_pvm_dekl)
-str(smallData)
-summary(myData$pardavimai_pvm_dekl)
+myData$pardavimai_pvm_dekl <- as.numeric(gsub(",","",myData$pardavimai_pvm_dekl))
+myData$pvm_dekl_36 <- as.numeric(gsub(",","",myData$pvm_dekl_36))
+myData$pirkimai_pvm_dekl <- as.numeric(gsub(",","",myData$pirkimai_pvm_dekl))
 
-######################## Find duplicate bankcrupt rows ########################
-smallData <- myData[1:200000,]
-write.csv(smallData, file="smallData_200k.csv", row.names = FALSE)
+summary(myData$pardavimai_pvm_dekl)
+summary(myData$pvm_dekl_36)
+summary(myData$pirkimai_pvm_dekl)
+
+
+######################## 3. REMOVE EMPTY OR NON-IMPORTANT VARIABLES (for mixed - month-year data) #######################
+# NAUJAS_PVM_MOK (?)
+# KLN_KLNT_TYPE
+# FIN_ATASKAITA
+# gpm, pvm, pm, akc, kiti - empty values
+# B_SANAUDOS - no data in 2019, 2018 datasets (???)
+# VKR_SEKCIJA, EV1_ID_NAME_TR - similiar variables (EV1_ID_NAME_TR - more detailed VKR_SEKCIJA)
+# APRASYMAS_FORMA == KODAS_FORMA (drop APRASYMAS_FORMA)
+library(dplyr)
+myData <- select(myData, -c(KLN_KLNT_TYPE, NAUJAS_PVM_MOK, FIN_ATASKAITA, gpm, pvm, pm, akc, kiti, VKR_SEKCIJA, APRASYMAS_FORMA))
+
+
+
+######################## Find duplicate bankrupt rows ########################
+smallData <- myDataRaw[1:200000,]
+write.csv(smallData, file="smallData_200k_raw.csv", row.names = FALSE)
 
 # All bankrupt rows (rownames as original dataset row indexes)
 Bankrupt2018Monthly <- subset(smallData, KODAS_STATUSAI == 5)
 #write.csv(Bankrupt2018Monthly, file="2018_bankrupt.csv", row.names = FALSE)
 nrow(Bankrupt2018Monthly)
 
-# Removing unique values or first of duplicates
+# Getting row indexes and removing unique values or first of duplicates
+# Only duplictaed bankrupt rows remain with original dataset row indexes
 ind_rm <- which(!duplicated(Bankrupt2018Monthly$ekch))
 length(ind_rm)
-
 Bankrupt2018MonthlyOnlyDups <- Bankrupt2018Monthly[-ind_rm,]
 #write.csv(Bankrupt2018MonthlyNoDup, file="2018_bankrupt_no_dups.csv", row.names = FALSE)
 
 # Everything left are duplicates with original row indexes
 ind_rm <- as.integer(rownames(Bankrupt2018MonthlyOnlyDups))
+# Removing duplicated bakrupt rows, which were extracted earlier
 smallData <- smallData[-ind_rm,]
 write.csv(smallData, file="smallData200k_nodups.csv", row.names = FALSE)
 
@@ -60,8 +94,6 @@ write.csv(smallData, file="smallData200k_nodups.csv", row.names = FALSE)
 #install.packages("polycor")
 #library("polycor")
 #hetcor(smallData)
-#
-#
 #
 ################################################################################
 
@@ -79,11 +111,23 @@ library(stringr)
 #summary(myData)
 
 library(dplyr)
-myData2018Year <- select(filter(myData, str_detect(myData$DATE, "DEC")),everything())
-str(myData2018Year)
+myDataYear <- select(filter(myData, str_detect(myData$DATE, "DEC")),everything())
+myDataMonth <- select(filter(myData, str_detect(myData$DATE, "DEC",negate = TRUE)),everything())
 
-write.csv(myData2018Year, file="Year2018_R.csv", row.names = FALSE)
+write.csv(myDataYear, file="im2019_met.csv", row.names = FALSE)
+write.csv(myDataMonth, file="im2019_men.csv", row.names = FALSE)
 
-summary(myData2018Year)
+summary(myDataMonth)
 
 head(myData)
+
+empty_values_month <- sapply(myDataMonth, function(x){sum(is.na(x))})
+empty_values_month[empty_values_month == nrow(myDataMonth)]
+length(empty_values_month[empty_values_month == nrow(myDataMonth)])
+
+
+empty_values <- sapply(myDataYear, function(x){sum(is.na(x))})
+empty_values[empty_values == nrow(myDataYear)]
+length(empty_values[empty_values == nrow(myDataYear)])
+
+
