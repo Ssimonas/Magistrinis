@@ -7,7 +7,9 @@ setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 
 TIME <- Sys.time()
 
-myData <- read.csv('data\\doodle\\im2014_utf8.csv',header=T, stringsAsFactors = FALSE, sep=',')
+YEAR_DATA = 2015
+
+myData <- read.csv(paste0('data\\raw\\im',YEAR_DATA,'_utf8.csv'),header=T, stringsAsFactors = FALSE, sep=',')
 
 summ <- summary(myData)
 
@@ -114,8 +116,13 @@ library(dplyr)
 myDataYear <- select(filter(myData, str_detect(myData$DATE, "DEC")),everything())
 myDataMonth <- select(filter(myData, str_detect(myData$DATE, "DEC",negate = TRUE)),everything())
 
-write.csv(myDataYear, file="im2019_met.csv", row.names = FALSE)
-write.csv(myDataMonth, file="im2019_men.csv", row.names = FALSE)
+#paste0('data\\raw\\yearly\\',YEAR_DATA,'_met.csv')
+
+#write.csv(myDataYear, file="data\\raw\\yearly\\2015_met.csv", row.names = FALSE)
+#write.csv(myDataMonth, file="data\\raw\\monthly\\2015_men.csv", row.names = FALSE)
+
+write.csv(myDataYear, paste0('data\\raw\\yearly\\',YEAR_DATA,'_met.csv'), row.names = FALSE)
+write.csv(myDataMonth, paste0('data\\raw\\monthly\\',YEAR_DATA,'_men.csv'), row.names = FALSE)
 
 summary(myDataMonth)
 
